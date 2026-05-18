@@ -143,7 +143,7 @@ footer{padding:2rem;border-top:1px solid var(--border);text-align:center;font-si
   <div class="stats-row">
     <div class="stat"><div class="stat-num">4</div><div class="stat-label">Graph Types</div></div>
     <div class="stat"><div class="stat-num">21</div><div class="stat-label">Saliency Patterns</div></div>
-    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Embed Coverage</div></div>
+    <div class="stat"><div class="stat-num">~90%</div><div class="stat-label">Token Savings</div></div>
     <div class="stat"><div class="stat-num">0</div><div class="stat-label">Cloud Dependencies</div></div>
   </div>
 </section>
@@ -152,9 +152,9 @@ footer{padding:2rem;border-top:1px solid var(--border);text-align:center;font-si
   <div class="container">
     <div class="reveal"><div class="section-label">Architecture</div><h2 class="section-title">Conversation → Capture → Graph</h2><p class="section-desc">Every message flows through a saliency pipeline that extracts insights, structures them, and writes them to a persistent graph — not just a flat text file.</p></div>
     <div class="arch-flow reveal">
-      <div class="arch-step"><span class="step-num">01</span><h3>Observe</h3><p><strong>Regex capture</strong> scans for 21 saliency patterns — "lesson learned:", "root cause was", "decided to", etc.</p></div>
+      <div class="arch-step"><span class="step-num">01 · <span style="color:var(--accent)">FREE</span></span><h3>Capture</h3><p><strong>Regex scan</strong> hits 21 saliency patterns per message — zero tokens. Raw content queued for later batch extraction.</p></div>
       <div class="arch-arrow">→</div>
-      <div class="arch-step"><span class="step-num">02</span><h3>Extract</h3><p><strong>LLM extraction</strong> pulls structured <code>(subject, relation, object)</code> triples with confidence scores.</p></div>
+      <div class="arch-step"><span class="step-num">02 · ADAPTIVE</span><h3>Batch Extract</h3><p>When queue ≥ 8 items or agent goes idle, <strong>LLM batch extraction</strong> concatenates context and extracts structured triples in one call.</p></div>
       <div class="arch-arrow">→</div>
       <div class="arch-step"><span class="step-num">03</span><h3>Distill</h3><p>Queue flushes → writes to <strong>daily log</strong> + <strong>Mnemon graph</strong> with category, importance, and entities.</p></div>
     </div>
@@ -174,7 +174,7 @@ footer{padding:2rem;border-top:1px solid var(--border);text-align:center;font-si
     <div class="feature-grid">
       <div class="feature-card reveal"><span class="feature-icon">🧠</span><h3>Intent-Aware Recall</h3><p>Ask "why did X break?" and Mnemon traverses causal chains, not keyword matches. WHY, WHEN, ENTITY, GENERAL — each intent triggers a different graph traversal strategy.</p><div style="margin-top:.75rem"><span class="tag tag-accent">WHY</span><span class="tag tag-purple">WHEN</span><span class="tag tag-warn">ENTITY</span><span class="tag tag-pink">GENERAL</span></div></div>
       <div class="feature-card reveal"><span class="feature-icon">🔗</span><h3>4-Graph Edges</h3><p>Temporal (backbone + proximity), Entity (shared entities), Causal (reason → effect), Semantic (cosine ≥ 0.80). Each edge type serves a distinct recall path.</p><div style="margin-top:.75rem"><span class="tag tag-purple">temporal</span><span class="tag tag-accent">entity</span><span class="tag tag-pink">causal</span><span class="tag tag-warn">semantic</span></div></div>
-      <div class="feature-card reveal"><span class="feature-icon">⚡</span><h3>Auto-Capture Pipeline</h3><p>21 regex patterns + LLM triple extraction running on every message. Zero-config insight capture — your agent remembers without being told to remember.</p></div>
+      <div class="feature-card reveal"><span class="feature-icon">⚡</span><h3>Adaptive Batch Capture</h3><p>Regex runs free on every message. LLM extraction batches when the queue fills (≥ 8 items) or on idle — saving ~90% tokens while getting better context from concatenated snippets.</p></div>
       <div class="feature-card reveal"><span class="feature-icon">🔄</span><h3>Auto-Dedup & Link</h3><p>Writing the same insight twice? Skipped. Similar but better? Auto-replaced. Same-batch items get temporal edges. Shared entities get entity edges. No manual curation needed.</p></div>
       <div class="feature-card reveal"><span class="feature-icon">📉</span><h3>Importance Decay</h3><p>Every insight has an importance score that naturally decays. Frequently recalled insights stay fresh. GC prunes what the agent has outgrown. Your memory stays lean.</p></div>
       <div class="feature-card reveal"><span class="feature-icon">🏠</span><h3>Local-First, No Cloud</h3><p>SQLite WAL database. Ollama embeddings on your machine. No API calls for recall. Your agent's memory stays private and fast, with zero cloud dependency.</p></div>

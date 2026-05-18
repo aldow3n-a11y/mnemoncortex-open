@@ -1,6 +1,6 @@
 # MnemonCortex
 
-**Graph memory for any AI agent.** A 4-graph persistent memory system (temporal, entity, causal, semantic) with intent-aware recall, auto-dedup, and importance decay.
+**Graph memory for any AI agent.** A 4-graph persistent memory system (temporal, entity, causal, semantic) with intent-aware recall, adaptive batch capture, and importance decay.
 
 Built on [Mnemon](https://github.com/mnemon-dev/mnemon) — the graph memory CLI for LLM agents.
 
@@ -16,6 +16,21 @@ MnemonCortex adds structure:
 2. **Entity edges** — co-occurrence through shared entities
 3. **Causal edges** — cause → effect chains (LLM-reviewed)
 4. **Semantic edges** — meaning similarity (cos ≥ 0.80 auto-linked)
+
+## v5 — Adaptive Batch Capture
+
+Previous versions called LLM extraction on **every outbound message** — burning tokens on isolated snippets out of context.
+
+**v5 is different:**
+
+| Trigger | What happens | Token cost |
+|---------|-------------|------------|
+| `message:sent` | Regex capture (21 patterns) + queue raw content | **Zero** |
+| Queue reaches ≥ 8 raw items | Batch LLM extraction (concatenated context) | ~1 call per batch |
+| `command:new` / idle | Flush all queued items through LLM + distill | ~1 call per flush |
+| `gateway:startup` | Flush orphans left from restart | ~1 call |
+
+**Result: ~90% fewer LLM calls** compared to per-message extraction. Better context too — batched content gives the LLM more to work with.
 
 ---
 
@@ -91,7 +106,44 @@ Importance auto-boosts for: `critical`, `always`, `never`, `root cause`, `securi
 
 ---
 
+## Data Flow (v5 Adaptive Batch)
+
+```
+Every message:sent
+    ↓ (zero tokens)
+Regex capture (21 patterns) ──→ Queue (regex items)
+Queue raw content            ──→ Queue (raw items)
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ↓               ↓               ↓
+              Queue ≥ 8        command:new      gateway:startup
+              (adaptive)        (idle)          (restart)
+                    │               │               │
+                    └───────────────┼───────────────┘
+                                    ↓
+                          Batch LLM Extraction
+                          (Ollama → Gemini fallback)
+                                    ↓
+                          Queue (triple items)
+                                    ↓
+                          Distill → Daily Log + Mnemon
+                                    ↓
+                    Auto-edges: temporal + entity + semantic
+                    Causal candidates → LLM review
+```
+
+---
+
 ## Components
+
+### Cortex-Synthesis Hook (v5)
+
+The capture pipeline running inside OpenClaw's gateway process:
+
+- **`message:sent`** — Regex saliency capture (free) + queue raw content
+- **`command:new` / `command:reset`** — Idle trigger: batch LLM extraction + distill
+- **`gateway:startup`** — Flush orphans on restart
+- **Adaptive threshold** — Auto-processes when ≥ 8 raw items accumulate
 
 ### Mnemon Plugin (`.openclaw/extensions/mnemon/`)
 
@@ -134,30 +186,13 @@ Full command reference for the agent: `remember`, `recall`, `link`, `related`, `
 
 ---
 
-## Data Flow
-
-```
-Agent conversation
-    ↓
-Capture hook (regex + LLM extraction)
-    ↓
-Distill → mnemon remember (--no-diff for batch)
-    ↓
-Auto-edges: temporal + entity + semantic (cos ≥ 0.80)
-Causal candidates returned for LLM review
-    ↓
-Recall: mnemon recall --intent WHY/WHEN/ENTITY/GENERAL
-    ↓
-Beam search → multi-factor reranking → scored results
-```
-
----
-
 ## Comparison
 
 | Feature | Flat Files / FTS5 | MnemonCortex | MemGPT | LangChain Memory |
 |---------|-----------|-------------|--------|-----------------|
 | Storage | Markdown | SQLite WAL + 4-graph | Proprietary | Various |
+| Capture | Manual or per-msg LLM | Regex (free) + adaptive batch LLM | Per-msg LLM | Buffer/window |
+| Token cost per msg | 0 (no extraction) | 0 (regex only) | High | Medium |
 | Recall | Keyword search | Intent-aware graph traversal | Conversation window | Buffer/window |
 | Relationships | Wikilinks (manual) | 4 typed edges (auto + manual) | None | None |
 | Dedup | Manual | Auto (sim-based) | Manual | None |
@@ -171,9 +206,9 @@ Beam search → multi-factor reranking → scored results
 ## Project Structure
 
 ```
-mnemoncortex/
+mnemocortex-open/
 ├── README.md
-├── index.html
+├── index.html          # Landing page
 ├── LICENSE
 ├── .gitignore
 └── .openclaw/
