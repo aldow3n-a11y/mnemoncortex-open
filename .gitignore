@@ -1,0 +1,10 @@
+# Git Ignore for MnemonCortex
+.env
+.env.*
+*.key
+*.pem
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+.mnemon/

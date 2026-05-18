@@ -1,0 +1,14 @@
+{
+  "plugins": {
+    "entries": {
+      "mnemon": {
+        "config": {
+          "compact": false,
+          "nudge": true,
+          "remind": true
+        },
+        "enabled": true
+      }
+    }
+  }
+}

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MnemonCortex — Graph Memory for AI Agents</title>
+<meta name="description" content="Add a 4-graph persistent memory layer to any AI agent. Temporal, entity, causal, and semantic edges — so your agent understands how facts connect.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0c10;--bg2:#12151c;--card:#181c26;--border:#2a3040;--border-glow:#3d4a6a;--text:#e8ecf4;--text2:#8892b0;--muted:#5a6380;--accent:#6ee7b7;--accent2:#818cf8;--warn:#f59e0b;--pink:#f472b6;--font:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+html{scroll-behavior:smooth;font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;overflow-x:hidden}
+::selection{background:var(--accent);color:var(--bg)}
+a{color:var(--accent);text-decoration:none;transition:color .2s}a:hover{color:#fff}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,12,16,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{font-weight:700;font-size:1.1rem;letter-spacing:-.02em;display:flex;align-items:center;gap:.5rem}
+.nav-links{display:flex;gap:1.5rem;font-size:.875rem;font-weight:500}.nav-links a{color:var(--text2)}.nav-links a:hover{color:var(--accent)}
+.nav-cta{font-size:.8rem;font-weight:600;padding:.4rem 1rem;border-radius:6px;background:var(--accent);color:var(--bg);transition:transform .15s,box-shadow .15s}.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(110,231,183,.12);color:var(--bg)}
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8rem 2rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 60% at 30% 20%,rgba(110,231,183,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 70% 80%,rgba(129,140,248,.05) 0%,transparent 60%),var(--bg)}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='g' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='30' cy='30' r='.8' fill='%23ffffff08'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill='url(%23g)' width='60' height='60'/%3E%3C/svg%3E");opacity:.5}
+.hero-overline{font-family:var(--mono);font-size:.75rem;font-weight:500;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.5rem;opacity:0;animation:fadeInUp .6s .2s ease forwards}
+.hero-title{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:700;letter-spacing:-.04em;line-height:1.05;margin-bottom:1.5rem;opacity:0;animation:fadeInUp .6s .35s ease forwards}
+.hero-title .accent{color:var(--accent)}.hero-title .secondary{color:var(--accent2)}
+.hero-sub{font-size:clamp(1rem,2vw,1.25rem);font-weight:300;color:var(--text2);max-width:640px;margin-bottom:2.5rem;opacity:0;animation:fadeInUp .6s .5s ease forwards}
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;opacity:0;animation:fadeInUp .6s .65s ease forwards}
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.75rem;border-radius:8px;font-family:var(--font);font-weight:600;font-size:.9rem;transition:transform .15s,box-shadow .15s;cursor:pointer;border:none}
+.btn-primary{background:var(--accent);color:var(--bg)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(110,231,183,.2);color:var(--bg)}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.graph-canvas{position:relative;width:100%;max-width:800px;margin:3rem auto 0;opacity:0;animation:fadeInUp .8s .8s ease forwards}
+.graph-svg{width:100%;height:auto}
+.graph-node{cursor:pointer;transition:r .3s}.graph-node:hover{filter:brightness(1.3)}
+.graph-label{font-family:var(--mono);font-size:10px;fill:var(--text2)}
+.graph-edge{stroke-width:1.5;fill:none;opacity:.6;transition:opacity .3s}.graph-edge:hover{opacity:1}
+section{padding:6rem 2rem;position:relative}section:nth-child(even){background:var(--bg2)}
+.container{max-width:1100px;margin:0 auto}
+.section-label{font-family:var(--mono);font-size:.7rem;font-weight:600;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.75rem}
+.section-title{font-size:clamp(1.75rem,3.5vw,2.5rem);font-weight:700;letter-spacing:-.03em;margin-bottom:1rem}
+.section-desc{color:var(--text2);font-size:1.05rem;max-width:600px;margin-bottom:3rem;font-weight:300}
+.arch-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:.5rem 0;align-items:center;margin:2rem 0}
+.arch-step{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.25rem;transition:border-color .3s,transform .2s}.arch-step:hover{border-color:var(--accent);transform:translateY(-2px)}
+.arch-step .step-num{font-family:var(--mono);font-size:.65rem;color:var(--accent);font-weight:700;margin-bottom:.5rem;display:block}
+.arch-step h3{font-size:.95rem;font-weight:600;margin-bottom:.35rem}
+.arch-step p{font-size:.8rem;color:var(--text2);line-height:1.5}
+.arch-arrow{font-size:1.5rem;color:var(--muted);text-align:center;display:flex;align-items:center;justify-content:center;padding:0 .25rem}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+.feature-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.75rem;transition:border-color .3s,transform .2s,box-shadow .3s;position:relative;overflow:hidden}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .3s}
+.feature-card:hover{border-color:var(--border-glow);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{font-size:1.75rem;margin-bottom:.75rem;display:block}
+.feature-card h3{font-size:1rem;font-weight:600;margin-bottom:.5rem}
+.feature-card p{font-size:.85rem;color:var(--text2);line-height:1.6}
+.code-showcase{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:2rem 0}
+@media(max-width:768px){.code-showcase{grid-template-columns:1fr}}
+.code-block{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid var(--border);font-size:.75rem;font-weight:600}
+.code-header .lang{color:var(--accent);font-family:var(--mono)}
+.code-dots{display:flex;gap:5px}.code-dots span{width:10px;height:10px;border-radius:50%;opacity:.7}
+.code-dots span:nth-child(1){background:#ef4444}.code-dots span:nth-child(2){background:#f59e0b}.code-dots span:nth-child(3){background:#22c55e}
+.code-body{padding:1rem;overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.7;color:var(--text2)}
+.code-body .kw{color:var(--accent2)}.code-body .fn{color:var(--accent)}.code-body .str{color:#f59e0b}.code-body .cmt{color:var(--muted);font-style:italic}.code-body .num{color:#f472b6}
+.compare{margin:2rem 0;overflow-x:auto}
+.compare table{width:100%;border-collapse:collapse;font-size:.85rem}
+.compare th{text-align:left;padding:.75rem 1rem;border-bottom:2px solid var(--border);font-weight:600;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.compare td{padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--text2)}
+.compare tr:hover td{background:var(--card)}
+.compare .yes{color:var(--accent);font-weight:600}.compare .no{color:var(--muted)}.compare .partial{color:var(--warn)}
+.stats-row{display:flex;gap:3rem;flex-wrap:wrap;justify-content:center;margin:3rem 0}
+.stat{text-align:center}
+.stat-num{font-size:2.5rem;font-weight:700;letter-spacing:-.04em;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:.8rem;color:var(--muted);margin-top:.25rem;font-weight:500}
+.tag{display:inline-flex;align-items:center;gap:.25rem;padding:.2rem .6rem;border-radius:999px;font-size:.7rem;font-family:var(--mono);font-weight:500;border:1px solid var(--border);color:var(--text2);margin:.15rem}
+.tag-accent{border-color:var(--accent);color:var(--accent)}.tag-purple{border-color:var(--accent2);color:var(--accent2)}.tag-warn{border-color:var(--warn);color:var(--warn)}.tag-pink{border-color:var(--pink);color:var(--pink)}
+.cta-section{text-align:center;padding:6rem 2rem;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(110,231,183,.1) 0%,transparent 70%),var(--bg)}
+.cta-title{font-size:clamp(1.75rem,3vw,2.5rem);font-weight:700;margin-bottom:1rem;letter-spacing:-.03em}
+.cta-sub{color:var(--text2);font-size:1.05rem;margin-bottom:2rem;font-weight:300}
+footer{padding:2rem;border-top:1px solid var(--border);text-align:center;font-size:.75rem;color:var(--muted)}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+@keyframes dash{to{stroke-dashoffset:-20}}.edge-animated{stroke-dasharray:5 5;animation:dash 2s linear infinite}
+@media(max-width:768px){nav{padding:0 1rem}.nav-links{display:none}.hero{padding:6rem 1.5rem 3rem}section{padding:4rem 1.5rem}.arch-flow{grid-template-columns:1fr;gap:.5rem}.arch-arrow{transform:rotate(90deg);padding:.25rem 0}.stats-row{gap:2rem}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="8" y1="7.5" x2="16" y2="7.5"/><line x1="7.5" y1="8" x2="10.5" y2="16"/><line x1="16.5" y1="8" x2="13.5" y2="16"/></svg>
+    MnemonCortex
+  </div>
+  <div class="nav-links">
+    <a href="#architecture">Architecture</a>
+    <a href="#features">Features</a>
+    <a href="#comparison">Comparison</a>
+    <a href="#quickstart">Quickstart</a>
+  </div>
+  <a href="https://github.com/aldow3n-a11y/mnemoncortex-open" class="nav-cta">GitHub ↗</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-overline">Open Source · Graph Memory · Any AI Agent</div>
+  <h1 class="hero-title">Memories with <span class="accent">structure</span>,<br>not just <span class="secondary">storage</span>.</h1>
+  <p class="hero-sub">MnemonCortex adds a 4-graph persistent memory layer to any AI agent — temporal, entity, causal, semantic edges — so your agent doesn't just store facts, it <em>understands</em> how they connect.</p>
+  <div class="hero-actions">
+    <a href="#quickstart" class="btn btn-primary">Get Started</a>
+    <a href="#architecture" class="btn btn-secondary">See How It Works</a>
+  </div>
+  <div class="graph-canvas">
+    <svg class="graph-svg" viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+      <line class="graph-edge edge-animated" x1="120" y1="80" x2="300" y2="60" stroke="var(--accent2)"/>
+      <line class="graph-edge edge-animated" x1="300" y1="60" x2="500" y2="100" stroke="var(--accent)"/>
+      <line class="graph-edge edge-animated" x1="500" y1="100" x2="680" y2="70" stroke="var(--pink)"/>
+      <line class="graph-edge edge-animated" x1="200" y1="200" x2="400" y2="220" stroke="var(--accent)"/>
+      <line class="graph-edge edge-animated" x1="400" y1="220" x2="600" y2="200" stroke="var(--accent2)"/>
+      <line class="graph-edge edge-animated" x1="300" y1="60" x2="400" y2="220" stroke="var(--warn)"/>
+      <line class="graph-edge edge-animated" x1="500" y1="100" x2="600" y2="200" stroke="var(--accent)"/>
+      <text x="205" y="62" class="graph-label" fill="var(--accent2)">temporal</text>
+      <text x="395" y="70" class="graph-label" fill="var(--accent)">entity</text>
+      <text x="585" y="75" class="graph-label" fill="var(--pink)">causal</text>
+      <text x="290" y="225" class="graph-label" fill="var(--accent)">entity</text>
+      <text x="495" y="205" class="graph-label" fill="var(--accent2)">semantic</text>
+      <text x="335" y="145" class="graph-label" fill="var(--warn)">causal</text>
+      <text x="555" y="155" class="graph-label" fill="var(--accent)">temporal</text>
+      <circle class="graph-node" cx="120" cy="80" r="18" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="120" y="84" text-anchor="middle" fill="var(--accent)" font-family="var(--mono)" font-size="9">Config</text>
+      <circle class="graph-node" cx="300" cy="60" r="18" fill="var(--card)" stroke="var(--accent2)" stroke-width="2"/>
+      <text x="300" y="64" text-anchor="middle" fill="var(--accent2)" font-family="var(--mono)" font-size="9">Infra</text>
+      <circle class="graph-node" cx="500" cy="100" r="18" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="500" y="104" text-anchor="middle" fill="var(--accent)" font-family="var(--mono)" font-size="9">Payment</text>
+      <circle class="graph-node" cx="680" cy="70" r="18" fill="var(--card)" stroke="var(--pink)" stroke-width="2"/>
+      <text x="680" y="74" text-anchor="middle" fill="var(--pink)" font-family="var(--mono)" font-size="9">Bug</text>
+      <circle class="graph-node" cx="200" cy="200" r="22" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="200" y="204" text-anchor="middle" fill="var(--accent)" font-family="var(--mono)" font-size="8">Security</text>
+      <circle class="graph-node" cx="400" cy="220" r="22" fill="var(--card)" stroke="var(--accent2)" stroke-width="2"/>
+      <text x="400" y="224" text-anchor="middle" fill="var(--accent2)" font-family="var(--mono)" font-size="8">Decision</text>
+      <circle class="graph-node" cx="600" cy="200" r="22" fill="var(--card)" stroke="var(--warn)" stroke-width="2"/>
+      <text x="600" y="204" text-anchor="middle" fill="var(--warn)" font-family="var(--mono)" font-size="8">Pipeline</text>
+    </svg>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Graph Types</div></div>
+    <div class="stat"><div class="stat-num">21</div><div class="stat-label">Saliency Patterns</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Embed Coverage</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Cloud Dependencies</div></div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="container">
+    <div class="reveal"><div class="section-label">Architecture</div><h2 class="section-title">Conversation → Capture → Graph</h2><p class="section-desc">Every message flows through a saliency pipeline that extracts insights, structures them, and writes them to a persistent graph — not just a flat text file.</p></div>
+    <div class="arch-flow reveal">
+      <div class="arch-step"><span class="step-num">01</span><h3>Observe</h3><p><strong>Regex capture</strong> scans for 21 saliency patterns — "lesson learned:", "root cause was", "decided to", etc.</p></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step"><span class="step-num">02</span><h3>Extract</h3><p><strong>LLM extraction</strong> pulls structured <code>(subject, relation, object)</code> triples with confidence scores.</p></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step"><span class="step-num">03</span><h3>Distill</h3><p>Queue flushes → writes to <strong>daily log</strong> + <strong>Mnemon graph</strong> with category, importance, and entities.</p></div>
+    </div>
+    <div class="arch-flow reveal" style="margin-top:1rem">
+      <div class="arch-step"><span class="step-num">04</span><h3>Link</h3><p>Auto-edges: <strong>temporal</strong> (same batch), <strong>entity</strong> (shared entities), <strong>semantic</strong> (cos ≥ 0.80). Causal candidates returned for LLM review.</p></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step"><span class="step-num">05</span><h3>Recall</h3><p>Intent-aware beam search: <strong>WHY</strong> → causal chains, <strong>WHEN</strong> → temporal, <strong>ENTITY</strong> → co-occurrence, <strong>GENERAL</strong> → RRF fusion.</p></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step"><span class="step-num">06</span><h3>Decay</h3><p>Effective importance decays over time. Access counts boost retention. <strong>GC</strong> prunes below threshold.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="reveal"><div class="section-label">Features</div><h2 class="section-title">Not just a database. A memory system.</h2><p class="section-desc">Built for agents that need to remember <em>why</em> things happened, not just <em>that</em> they happened.</p></div>
+    <div class="feature-grid">
+      <div class="feature-card reveal"><span class="feature-icon">🧠</span><h3>Intent-Aware Recall</h3><p>Ask "why did X break?" and Mnemon traverses causal chains, not keyword matches. WHY, WHEN, ENTITY, GENERAL — each intent triggers a different graph traversal strategy.</p><div style="margin-top:.75rem"><span class="tag tag-accent">WHY</span><span class="tag tag-purple">WHEN</span><span class="tag tag-warn">ENTITY</span><span class="tag tag-pink">GENERAL</span></div></div>
+      <div class="feature-card reveal"><span class="feature-icon">🔗</span><h3>4-Graph Edges</h3><p>Temporal (backbone + proximity), Entity (shared entities), Causal (reason → effect), Semantic (cosine ≥ 0.80). Each edge type serves a distinct recall path.</p><div style="margin-top:.75rem"><span class="tag tag-purple">temporal</span><span class="tag tag-accent">entity</span><span class="tag tag-pink">causal</span><span class="tag tag-warn">semantic</span></div></div>
+      <div class="feature-card reveal"><span class="feature-icon">⚡</span><h3>Auto-Capture Pipeline</h3><p>21 regex patterns + LLM triple extraction running on every message. Zero-config insight capture — your agent remembers without being told to remember.</p></div>
+      <div class="feature-card reveal"><span class="feature-icon">🔄</span><h3>Auto-Dedup & Link</h3><p>Writing the same insight twice? Skipped. Similar but better? Auto-replaced. Same-batch items get temporal edges. Shared entities get entity edges. No manual curation needed.</p></div>
+      <div class="feature-card reveal"><span class="feature-icon">📉</span><h3>Importance Decay</h3><p>Every insight has an importance score that naturally decays. Frequently recalled insights stay fresh. GC prunes what the agent has outgrown. Your memory stays lean.</p></div>
+      <div class="feature-card reveal"><span class="feature-icon">🏠</span><h3>Local-First, No Cloud</h3><p>SQLite WAL database. Ollama embeddings on your machine. No API calls for recall. Your agent's memory stays private and fast, with zero cloud dependency.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="comparison">
+  <div class="container">
+    <div class="reveal"><div class="section-label">Comparison</div><h2 class="section-title">Before & After MnemonCortex</h2></div>
+    <div class="compare reveal">
+      <table>
+        <thead><tr><th>Aspect</th><th>Flat Files / FTS5</th><th>MnemonCortex</th></tr></thead>
+        <tbody>
+          <tr><td>Storage</td><td>Markdown files, hand-curated</td><td>SQLite WAL + 4-graph structure</td></tr>
+          <tr><td>Recall</td><td class="no">Keyword search, one-size-fits-all</td><td class="yes">Intent-aware beam search + RRF fusion</td></tr>
+          <tr><td>Dedup</td><td class="no">Manual — copy-paste everywhere</td><td class="yes">Auto (sim > 0.90 skip, 0.50-0.90 replace)</td></tr>
+          <tr><td>Relationships</td><td class="partial">Wikilinks, hand-maintained</td><td class="yes">4 typed edge types, auto + manual</td></tr>
+          <tr><td>Capture</td><td class="partial">Manual or regex-only</td><td class="yes">Regex + LLM triples → graph</td></tr>
+          <tr><td>Decay</td><td class="no">None — logs accumulate forever</td><td class="yes">Effective importance decay + GC</td></tr>
+          <tr><td>"Why did X happen?"</td><td class="no">Keyword search, no causal chain</td><td class="yes">Traverses causal edges → root cause</td></tr>
+          <tr><td>Agent integration</td><td>Ad-hoc per agent</td><td class="yes">Hook + Plugin + Skill, any agent</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="container">
+    <div class="reveal"><div class="section-label">Quickstart</div><h2 class="section-title">Up and running in 3 commands</h2></div>
+    <div class="code-showcase reveal">
+      <div class="code-block">
+        <div class="code-header"><span class="lang">bash</span><div class="code-dots"><span></span><span></span><span></span></div></div>
+        <div class="code-body">
+<span class="cmt"># Install Mnemon</span>
+<span class="kw">brew</span> install mnemon-dev/tap/mnemon
+<span class="cmt"># or: go install github.com/mnemon-dev/mnemon@latest</span>
+
+<span class="cmt"># Set up agent integration</span>
+mnemon setup --target openclaw --yes
+
+<span class="cmt"># Pull embedding model</span>
+ollama pull nomic-embed-text
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">bash</span><div class="code-dots"><span></span><span></span><span></span></div></div>
+        <div class="code-body">
+<span class="cmt"># Store a decision</span>
+mnemon remember <span class="str">"Switched to pm2 for process mgmt"</span> \
+  --cat decision --imp 4 \
+  --entities <span class="str">"pm2,systemd,deployment"</span>
+
+<span class="cmt"># Recall why something broke</span>
+mnemon recall <span class="str">"why did the deploy fail"</span> \
+  --intent WHY --limit 3
+
+<span class="cmt"># Link a cause</span>
+mnemon link &lt;cause-id&gt; &lt;effect-id&gt; \
+  --type causal --weight <span class="num">0.8</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="integrations">
+  <div class="container">
+    <div class="reveal"><div class="section-label">Integrations</div><h2 class="section-title">Works with any agent framework</h2></div>
+    <div class="feature-grid reveal" style="margin-top:2rem">
+      <div class="feature-card"><span class="feature-icon">🤖</span><h3>OpenClaw</h3><p>Native integration via hooks, plugins, and skills. Bootstrap injection, remind/nudge before prompt build, compact before context compression. One-command setup: <code>mnemon setup --target openclaw --yes</code></p></div>
+      <div class="feature-card"><span class="feature-icon">🔧</span><h3>Custom Agents</h3><p>Use the CLI directly from any agent shell. <code>mnemon remember</code>, <code>mnemon recall</code>, <code>mnemon link</code> — standard stdin/stdout, works with any language.</p></div>
+      <div class="feature-card"><span class="feature-icon">📡</span><h3>Any Embedding Provider</h3><p>Default: Ollama nomic-embed-text (local, free). Compatible with any embedding provider Mnemon supports. 768-dim vectors, 100% coverage.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="reveal">
+    <h2 class="cta-title">Give your agent a memory that <em>connects</em>.</h2>
+    <p class="cta-sub">Open source. Local-first. Zero cloud dependency. Works with any AI agent.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="https://github.com/aldow3n-a11y/mnemoncortex-open" class="btn btn-primary">View on GitHub</a>
+      <a href="https://github.com/mnemon-dev/mnemon" class="btn btn-secondary">Mnemon CLI</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>MnemonCortex — Graph memory for any AI agent. Open source under MIT.</p>
+  <p style="margin-top:.5rem">No cloud required. Your agent's memory stays on your machine.</p>
+</footer>
+
+<script>
+const observer=new IntersectionObserver(e=>{e.forEach(t=>{if(t.isIntersecting)t.target.classList.add('visible')})},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
